@@ -15,6 +15,19 @@ pub mod msg {
     pub const COMPOSE_DETECT: &str = "compose.detect";
     pub const LOGS_TAIL: &str = "logs.tail";
 
+    pub const DISCOVERY_SCAN: &str = "discovery.scan";
+    pub const DISCOVERY_IMPORT: &str = "discovery.import";
+    pub const BACKUP_CREATE: &str = "backup.create";
+    pub const BACKUP_RESTORE: &str = "backup.restore";
+    pub const TAILSCALE_STATUS: &str = "tailscale.status";
+    pub const TAILSCALE_UP: &str = "tailscale.up";
+    pub const DHCP_PLAN: &str = "dhcp.plan";
+    pub const DHCP_APPLY: &str = "dhcp.apply";
+    pub const HAPROXY_VALIDATE: &str = "haproxy.validate";
+    pub const HAPROXY_RELOAD: &str = "haproxy.reload";
+    pub const CERT_ISSUE: &str = "cert.issue";
+    pub const CERT_RENEW: &str = "cert.renew";
+
     pub const HELLO_RESULT: &str = "hello_result";
     pub const NODE_INFO_RESULT: &str = "node.info_result";
     pub const DETECT_INTERFACES_RESULT: &str = "interfaces.detect_result";
@@ -26,6 +39,20 @@ pub mod msg {
     pub const DOCKER_DETECT_RESULT: &str = "docker.detect_result";
     pub const COMPOSE_DETECT_RESULT: &str = "compose.detect_result";
     pub const LOGS_TAIL_RESULT: &str = "logs.tail_result";
+
+    pub const DISCOVERY_SCAN_RESULT: &str = "discovery.scan_result";
+    pub const DISCOVERY_IMPORT_RESULT: &str = "discovery.import_result";
+    pub const BACKUP_CREATE_RESULT: &str = "backup.create_result";
+    pub const BACKUP_RESTORE_RESULT: &str = "backup.restore_result";
+    pub const TAILSCALE_STATUS_RESULT: &str = "tailscale.status_result";
+    pub const TAILSCALE_UP_RESULT: &str = "tailscale.up_result";
+    pub const DHCP_PLAN_RESULT: &str = "dhcp.plan_result";
+    pub const DHCP_APPLY_RESULT: &str = "dhcp.apply_result";
+    pub const HAPROXY_VALIDATE_RESULT: &str = "haproxy.validate_result";
+    pub const HAPROXY_RELOAD_RESULT: &str = "haproxy.reload_result";
+    pub const CERT_ISSUE_RESULT: &str = "cert.issue_result";
+    pub const CERT_RENEW_RESULT: &str = "cert.renew_result";
+
     pub const TELEMETRY_SNAPSHOT: &str = "telemetry.snapshot";
     pub const ERROR: &str = "error";
 }
