@@ -5,6 +5,7 @@ use ports_common::{msg, AgentConfig, RpcRequest, RpcResponse};
 use crate::backup;
 use crate::core::{system, telemetry, AGENT_VERSION};
 use crate::db::Store;
+use crate::dhcp;
 use crate::discovery;
 use crate::firewall::{provider_for, PortForward};
 use crate::tailscale;
@@ -57,6 +58,11 @@ pub fn dispatch(req: &RpcRequest, config: &AgentConfig) -> RpcResponse {
         msg::TAILSCALE_STATUS => RpcResponse::ok(msg::TAILSCALE_STATUS_RESULT, rid, tailscale::status()),
         msg::BACKUP_CREATE => backup_create(req, rid),
         msg::BACKUP_RESTORE => backup_restore(req, rid),
+        msg::DHCP_PLAN => {
+            let config = req.payload.get("config").and_then(|v| v.as_str()).unwrap_or("");
+            RpcResponse::ok(msg::DHCP_PLAN_RESULT, rid, dhcp::plan(config))
+        }
+        msg::DHCP_APPLY => dhcp_apply(req, rid),
         other => RpcResponse::error(rid, format!("unknown command {other:?}")),
     }
 }
@@ -156,6 +162,18 @@ fn backup_restore(req: &RpcRequest, rid: Option<String>) -> RpcResponse {
         .unwrap_or_default();
     match backup::restore(scope, remote_path, &paths) {
         Ok(payload) => RpcResponse::ok(msg::BACKUP_RESTORE_RESULT, rid, payload),
+        Err(e) => RpcResponse::error(rid, e),
+    }
+}
+
+fn dhcp_apply(req: &RpcRequest, rid: Option<String>) -> RpcResponse {
+    let config_path = req.payload.get("configPath").and_then(|v| v.as_str()).unwrap_or("");
+    let config = req.payload.get("config").and_then(|v| v.as_str()).unwrap_or("");
+    if config_path.is_empty() {
+        return RpcResponse::error(rid, "missing configPath".to_string());
+    }
+    match dhcp::apply(config_path, config) {
+        Ok(payload) => RpcResponse::ok(msg::DHCP_APPLY_RESULT, rid, payload),
         Err(e) => RpcResponse::error(rid, e),
     }
 }

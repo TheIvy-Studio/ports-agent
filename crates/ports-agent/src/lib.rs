@@ -1,6 +1,7 @@
 pub mod backup;
 pub mod core;
 pub mod db;
+pub mod dhcp;
 pub mod discovery;
 pub mod firewall;
 pub mod router;
