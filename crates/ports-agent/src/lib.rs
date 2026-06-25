@@ -9,4 +9,5 @@ pub mod firewall;
 pub mod haproxy;
 pub mod router;
 pub mod tailscale;
+pub mod traffic;
 pub mod transport;

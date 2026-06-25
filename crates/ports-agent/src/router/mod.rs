@@ -11,6 +11,7 @@ use crate::dhcp;
 use crate::discovery;
 use crate::firewall::{provider_for, PortForward};
 use crate::haproxy;
+use crate::traffic;
 use crate::tailscale;
 
 fn state_path(config: &AgentConfig) -> String {
@@ -81,6 +82,10 @@ pub fn dispatch(req: &RpcRequest, config: &AgentConfig) -> RpcResponse {
             Ok(payload) => RpcResponse::ok(msg::DNS_APPLY_RESULT, rid, payload),
             Err(e) => RpcResponse::error(rid, e),
         },
+        msg::CONNTRACK_LIST => {
+            let limit = req.payload.get("limit").and_then(|v| v.as_u64()).unwrap_or(200) as usize;
+            RpcResponse::ok(msg::CONNTRACK_LIST_RESULT, rid, traffic::conntrack(limit))
+        }
         other => RpcResponse::error(rid, format!("unknown command {other:?}")),
     }
 }
