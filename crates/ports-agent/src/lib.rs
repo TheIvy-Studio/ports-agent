@@ -4,6 +4,7 @@ pub mod db;
 pub mod dhcp;
 pub mod discovery;
 pub mod firewall;
+pub mod haproxy;
 pub mod router;
 pub mod tailscale;
 pub mod transport;

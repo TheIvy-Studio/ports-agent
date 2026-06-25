@@ -8,6 +8,7 @@ use crate::db::Store;
 use crate::dhcp;
 use crate::discovery;
 use crate::firewall::{provider_for, PortForward};
+use crate::haproxy;
 use crate::tailscale;
 
 fn state_path(config: &AgentConfig) -> String {
@@ -63,6 +64,11 @@ pub fn dispatch(req: &RpcRequest, config: &AgentConfig) -> RpcResponse {
             RpcResponse::ok(msg::DHCP_PLAN_RESULT, rid, dhcp::plan(config))
         }
         msg::DHCP_APPLY => dhcp_apply(req, rid),
+        msg::HAPROXY_VALIDATE => {
+            let config = req.payload.get("config").and_then(|v| v.as_str()).unwrap_or("");
+            RpcResponse::ok(msg::HAPROXY_VALIDATE_RESULT, rid, haproxy::validate(config))
+        }
+        msg::HAPROXY_RELOAD => haproxy_apply(req, rid),
         other => RpcResponse::error(rid, format!("unknown command {other:?}")),
     }
 }
@@ -174,6 +180,18 @@ fn dhcp_apply(req: &RpcRequest, rid: Option<String>) -> RpcResponse {
     }
     match dhcp::apply(config_path, config) {
         Ok(payload) => RpcResponse::ok(msg::DHCP_APPLY_RESULT, rid, payload),
+        Err(e) => RpcResponse::error(rid, e),
+    }
+}
+
+fn haproxy_apply(req: &RpcRequest, rid: Option<String>) -> RpcResponse {
+    let config_path = req.payload.get("configPath").and_then(|v| v.as_str()).unwrap_or("");
+    let config = req.payload.get("config").and_then(|v| v.as_str()).unwrap_or("");
+    if config_path.is_empty() {
+        return RpcResponse::error(rid, "missing configPath".to_string());
+    }
+    match haproxy::apply(config_path, config) {
+        Ok(payload) => RpcResponse::ok(msg::HAPROXY_RELOAD_RESULT, rid, payload),
         Err(e) => RpcResponse::error(rid, e),
     }
 }
