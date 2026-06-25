@@ -63,8 +63,9 @@ pub fn dispatch(req: &RpcRequest, config: &AgentConfig) -> RpcResponse {
         msg::BACKUP_CREATE => backup_create(req, rid),
         msg::BACKUP_RESTORE => backup_restore(req, rid),
         msg::DHCP_PLAN => {
+            let backend = req.payload.get("backend").and_then(|v| v.as_str()).unwrap_or("dnsmasq");
             let config = req.payload.get("config").and_then(|v| v.as_str()).unwrap_or("");
-            RpcResponse::ok(msg::DHCP_PLAN_RESULT, rid, dhcp::plan(config))
+            RpcResponse::ok(msg::DHCP_PLAN_RESULT, rid, dhcp::plan(backend, config))
         }
         msg::DHCP_APPLY => dhcp_apply(req, rid),
         msg::HAPROXY_VALIDATE => {
@@ -190,12 +191,13 @@ fn backup_restore(req: &RpcRequest, rid: Option<String>) -> RpcResponse {
 }
 
 fn dhcp_apply(req: &RpcRequest, rid: Option<String>) -> RpcResponse {
+    let backend = req.payload.get("backend").and_then(|v| v.as_str()).unwrap_or("dnsmasq");
     let config_path = req.payload.get("configPath").and_then(|v| v.as_str()).unwrap_or("");
     let config = req.payload.get("config").and_then(|v| v.as_str()).unwrap_or("");
     if config_path.is_empty() {
         return RpcResponse::error(rid, "missing configPath".to_string());
     }
-    match dhcp::apply(config_path, config) {
+    match dhcp::apply(backend, config_path, config) {
         Ok(payload) => RpcResponse::ok(msg::DHCP_APPLY_RESULT, rid, payload),
         Err(e) => RpcResponse::error(rid, e),
     }
