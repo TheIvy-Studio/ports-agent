@@ -31,6 +31,8 @@ enum Commands {
         ssh_port: u16,
         #[arg(long, default_value = "ports")]
         ssh_user: String,
+        #[arg(long)]
+        tailscale_ip: Option<String>,
     },
     Logout,
     Status,
@@ -81,8 +83,8 @@ enum FirewallAction {
 pub fn run() -> Result<()> {
     let cli = Cli::parse();
     match cli.command {
-        Commands::Login { backend_url, token, mode, ssh_host, ssh_port, ssh_user } => {
-            login(backend_url, token, mode, ssh_host, ssh_port, ssh_user)
+        Commands::Login { backend_url, token, mode, ssh_host, ssh_port, ssh_user, tailscale_ip } => {
+            login(backend_url, token, mode, ssh_host, ssh_port, ssh_user, tailscale_ip)
         }
         Commands::Logout => logout(),
         Commands::Status => status(),
@@ -126,15 +128,19 @@ fn login(
     ssh_host: Option<String>,
     ssh_port: u16,
     ssh_user: String,
+    tailscale_ip: Option<String>,
 ) -> Result<()> {
     let backend_url = backend_url
-        .ok_or_else(|| anyhow!("usage: portsctl login <backend-url> <enrollment-token> [--mode ssh|reverse]"))?;
+        .ok_or_else(|| anyhow!("usage: portsctl login <backend-url> <enrollment-token> [--mode ssh|reverse|tailscale]"))?;
     let token = token.ok_or_else(|| anyhow!("missing enrollment token"))?;
-    if mode != "reverse" && mode != "ssh" {
-        return Err(anyhow!("mode must be 'reverse' or 'ssh'"));
+    if mode != "reverse" && mode != "ssh" && mode != "tailscale" {
+        return Err(anyhow!("mode must be 'reverse', 'ssh' or 'tailscale'"));
     }
     if mode == "ssh" && ssh_host.is_none() {
         return Err(anyhow!("--ssh-host is required for ssh mode"));
+    }
+    if mode == "tailscale" && tailscale_ip.is_none() {
+        return Err(anyhow!("--tailscale-ip is required for tailscale mode"));
     }
 
     core::ensure_dirs()?;
@@ -155,6 +161,7 @@ fn login(
         ssh_host,
         ssh_port,
         ssh_user,
+        tailscale_ip_v4: tailscale_ip,
     };
 
     let response = client::enroll(&backend_url, &request)?;
@@ -186,7 +193,11 @@ fn login(
         if let Some(key) = response.backend_public_key {
             install_authorized_key(&key)?;
         }
-        println!("SSH mode configured. Backend reaches this node via `portsctl agent-rpc`.");
+        if mode == "tailscale" {
+            println!("Tailscale SSH mode configured. Backend reaches this node via Tailscale IP.");
+        } else {
+            println!("SSH mode configured. Backend reaches this node via `portsctl agent-rpc`.");
+        }
     }
     Ok(())
 }

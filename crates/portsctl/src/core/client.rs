@@ -19,6 +19,7 @@ pub struct EnrollRequest {
     pub ssh_host: Option<String>,
     pub ssh_port: u16,
     pub ssh_user: String,
+    pub tailscale_ip_v4: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
