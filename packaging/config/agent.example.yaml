@@ -1,0 +1,28 @@
+node:
+  id: "node_01hxyz"
+  name: "pve-01"
+  mode: "reverse"
+
+backend:
+  url: "https://ports.example.com"
+  websocket_url: "wss://ports.example.com/api/agent/connect"
+
+auth:
+  key_path: "/etc/ports/keys/node.key"
+  public_key_path: "/etc/ports/keys/node.pub"
+
+agent:
+  data_dir: "/var/lib/ports"
+  log_level: "info"
+
+firewall:
+  backend: "nftables"
+  table_name: "ports_agent"
+  dry_run: false
+  backup_before_apply: true
+
+features:
+  firewall: true
+  traffic: true
+  conntrack: true
+  proxmox_local: true

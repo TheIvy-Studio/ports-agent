@@ -1,0 +1,39 @@
+name: ports-agent
+arch: ${PKG_ARCH}
+platform: linux
+version: ${VERSION}
+version_schema: none
+section: net
+priority: optional
+maintainer: IMDelewer <noreply@ports.local>
+description: |
+  Ports agent — native systemd node agent for the Ports control plane.
+  Manages nftables port-forward rules and reports telemetry. Ships the
+  portsctl CLI for enrollment and local management.
+vendor: Ports
+homepage: https://github.com/IMDelewer/ports
+license: MIT
+
+depends:
+  - nftables
+
+contents:
+  - src: ./target/release/ports-agent
+    dst: /usr/bin/ports-agent
+  - src: ./target/release/portsctl
+    dst: /usr/bin/portsctl
+  - src: ./packaging/systemd/ports-agent.service
+    dst: /usr/lib/systemd/system/ports-agent.service
+  - dst: /etc/ports/config
+    type: dir
+    file_info:
+      mode: 0755
+  - dst: /etc/ports/keys
+    type: dir
+    file_info:
+      mode: 0750
+
+scripts:
+  postinstall: ./packaging/scripts/postinstall.sh
+  preremove: ./packaging/scripts/preremove.sh
+  postremove: ./packaging/scripts/postremove.sh

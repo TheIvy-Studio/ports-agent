@@ -1,0 +1,28 @@
+# Maintainer: IMDelewer <noreply@ports.local>
+pkgname=ports-agent
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Ports agent — native systemd node agent and portsctl CLI for the Ports control plane"
+arch=('x86_64' 'aarch64')
+url="https://github.com/IMDelewer/ports"
+license=('MIT')
+depends=('nftables')
+makedepends=('cargo')
+backup=('etc/ports/config/agent.yaml')
+install=ports-agent.install
+source=()
+
+build() {
+    cd "$startdir/../.."
+    cargo build --release --locked
+}
+
+package() {
+    cd "$startdir/../.."
+    install -Dm755 target/release/ports-agent "$pkgdir/usr/bin/ports-agent"
+    install -Dm755 target/release/portsctl "$pkgdir/usr/bin/portsctl"
+    install -Dm644 packaging/systemd/ports-agent.service \
+        "$pkgdir/usr/lib/systemd/system/ports-agent.service"
+    install -dm755 "$pkgdir/etc/ports/config"
+    install -dm750 "$pkgdir/etc/ports/keys"
+}

@@ -1,0 +1,21 @@
+post_install() {
+    if ! id ports >/dev/null 2>&1; then
+        useradd --system --no-create-home --home-dir /var/lib/ports --shell /usr/bin/nologin ports || true
+    fi
+    mkdir -p /var/lib/ports /var/log/ports
+    systemctl daemon-reload || true
+    echo "ports-agent installed. Enroll with: sudo portsctl login <backend-url> <enrollment-token>"
+}
+
+post_upgrade() {
+    systemctl daemon-reload || true
+}
+
+pre_remove() {
+    systemctl stop ports-agent 2>/dev/null || true
+    systemctl disable ports-agent 2>/dev/null || true
+}
+
+post_remove() {
+    systemctl daemon-reload || true
+}
