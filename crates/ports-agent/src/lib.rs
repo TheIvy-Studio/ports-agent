@@ -1,6 +1,7 @@
 pub mod acme;
 pub mod backup;
 pub mod core;
+pub mod coredns;
 pub mod db;
 pub mod dhcp;
 pub mod discovery;

@@ -27,6 +27,8 @@ pub mod msg {
     pub const HAPROXY_RELOAD: &str = "haproxy.reload";
     pub const CERT_ISSUE: &str = "cert.issue";
     pub const CERT_RENEW: &str = "cert.renew";
+    pub const DNS_PLAN: &str = "dns.plan";
+    pub const DNS_APPLY: &str = "dns.apply";
 
     pub const HELLO_RESULT: &str = "hello_result";
     pub const NODE_INFO_RESULT: &str = "node.info_result";
@@ -52,6 +54,8 @@ pub mod msg {
     pub const HAPROXY_RELOAD_RESULT: &str = "haproxy.reload_result";
     pub const CERT_ISSUE_RESULT: &str = "cert.issue_result";
     pub const CERT_RENEW_RESULT: &str = "cert.renew_result";
+    pub const DNS_PLAN_RESULT: &str = "dns.plan_result";
+    pub const DNS_APPLY_RESULT: &str = "dns.apply_result";
 
     pub const TELEMETRY_SNAPSHOT: &str = "telemetry.snapshot";
     pub const ERROR: &str = "error";

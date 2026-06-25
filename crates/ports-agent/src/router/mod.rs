@@ -5,6 +5,7 @@ use ports_common::{msg, AgentConfig, RpcRequest, RpcResponse};
 use crate::acme;
 use crate::backup;
 use crate::core::{system, telemetry, AGENT_VERSION};
+use crate::coredns;
 use crate::db::Store;
 use crate::dhcp;
 use crate::discovery;
@@ -72,6 +73,14 @@ pub fn dispatch(req: &RpcRequest, config: &AgentConfig) -> RpcResponse {
         msg::HAPROXY_RELOAD => haproxy_apply(req, rid),
         msg::CERT_ISSUE => cert_run(req, rid, false),
         msg::CERT_RENEW => cert_run(req, rid, true),
+        msg::DNS_PLAN => {
+            let corefile = req.payload.get("corefile").and_then(|v| v.as_str()).unwrap_or("");
+            RpcResponse::ok(msg::DNS_PLAN_RESULT, rid, coredns::plan(corefile))
+        }
+        msg::DNS_APPLY => match coredns::apply(&req.payload) {
+            Ok(payload) => RpcResponse::ok(msg::DNS_APPLY_RESULT, rid, payload),
+            Err(e) => RpcResponse::error(rid, e),
+        },
         other => RpcResponse::error(rid, format!("unknown command {other:?}")),
     }
 }
