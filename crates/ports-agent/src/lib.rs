@@ -1,3 +1,4 @@
+pub mod acme;
 pub mod backup;
 pub mod core;
 pub mod db;

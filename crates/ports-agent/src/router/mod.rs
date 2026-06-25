@@ -2,6 +2,7 @@ use serde_json::{json, Value};
 
 use ports_common::{msg, AgentConfig, RpcRequest, RpcResponse};
 
+use crate::acme;
 use crate::backup;
 use crate::core::{system, telemetry, AGENT_VERSION};
 use crate::db::Store;
@@ -69,6 +70,8 @@ pub fn dispatch(req: &RpcRequest, config: &AgentConfig) -> RpcResponse {
             RpcResponse::ok(msg::HAPROXY_VALIDATE_RESULT, rid, haproxy::validate(config))
         }
         msg::HAPROXY_RELOAD => haproxy_apply(req, rid),
+        msg::CERT_ISSUE => cert_run(req, rid, false),
+        msg::CERT_RENEW => cert_run(req, rid, true),
         other => RpcResponse::error(rid, format!("unknown command {other:?}")),
     }
 }
@@ -192,6 +195,15 @@ fn haproxy_apply(req: &RpcRequest, rid: Option<String>) -> RpcResponse {
     }
     match haproxy::apply(config_path, config) {
         Ok(payload) => RpcResponse::ok(msg::HAPROXY_RELOAD_RESULT, rid, payload),
+        Err(e) => RpcResponse::error(rid, e),
+    }
+}
+
+fn cert_run(req: &RpcRequest, rid: Option<String>, renew: bool) -> RpcResponse {
+    let result = if renew { acme::renew(&req.payload) } else { acme::issue(&req.payload) };
+    let result_type = if renew { msg::CERT_RENEW_RESULT } else { msg::CERT_ISSUE_RESULT };
+    match result {
+        Ok(payload) => RpcResponse::ok(result_type, rid, payload),
         Err(e) => RpcResponse::error(rid, e),
     }
 }
