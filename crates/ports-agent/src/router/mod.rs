@@ -2,9 +2,12 @@ use serde_json::{json, Value};
 
 use ports_common::{msg, AgentConfig, RpcRequest, RpcResponse};
 
+use crate::backup;
 use crate::core::{system, telemetry, AGENT_VERSION};
 use crate::db::Store;
+use crate::discovery;
 use crate::firewall::{provider_for, PortForward};
+use crate::tailscale;
 
 fn state_path(config: &AgentConfig) -> String {
     format!("{}/state.json", config.agent.data_dir)
@@ -42,6 +45,18 @@ pub fn dispatch(req: &RpcRequest, config: &AgentConfig) -> RpcResponse {
             let lines = req.payload.get("lines").and_then(|v| v.as_u64()).unwrap_or(200) as usize;
             RpcResponse::ok(msg::LOGS_TAIL_RESULT, rid, json!({ "lines": system::tail_logs(lines) }))
         }
+        msg::DISCOVERY_SCAN => {
+            let kinds = req
+                .payload
+                .get("kinds")
+                .and_then(|v| v.as_array())
+                .map(|a| a.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect::<Vec<_>>())
+                .unwrap_or_default();
+            RpcResponse::ok(msg::DISCOVERY_SCAN_RESULT, rid, discovery::scan(&kinds))
+        }
+        msg::TAILSCALE_STATUS => RpcResponse::ok(msg::TAILSCALE_STATUS_RESULT, rid, tailscale::status()),
+        msg::BACKUP_CREATE => backup_create(req, rid),
+        msg::BACKUP_RESTORE => backup_restore(req, rid),
         other => RpcResponse::error(rid, format!("unknown command {other:?}")),
     }
 }
@@ -113,5 +128,34 @@ fn firewall_restore(req: &RpcRequest, config: &AgentConfig, rid: Option<String>)
     match provider_for(config).restore(&path) {
         Ok(()) => RpcResponse::ok(msg::FIREWALL_RESTORE_RESULT, rid, json!({ "status": "restored" })),
         Err(e) => RpcResponse::error(rid, e.to_string()),
+    }
+}
+
+fn backup_create(req: &RpcRequest, rid: Option<String>) -> RpcResponse {
+    let scope = req.payload.get("scope").and_then(|v| v.as_str()).unwrap_or("generic");
+    let paths = req
+        .payload
+        .get("paths")
+        .and_then(|v| v.as_array())
+        .map(|a| a.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect::<Vec<_>>())
+        .unwrap_or_default();
+    match backup::create(scope, &paths) {
+        Ok(payload) => RpcResponse::ok(msg::BACKUP_CREATE_RESULT, rid, payload),
+        Err(e) => RpcResponse::error(rid, e),
+    }
+}
+
+fn backup_restore(req: &RpcRequest, rid: Option<String>) -> RpcResponse {
+    let scope = req.payload.get("scope").and_then(|v| v.as_str()).unwrap_or("generic");
+    let remote_path = req.payload.get("remotePath").and_then(|v| v.as_str()).unwrap_or("");
+    let paths = req
+        .payload
+        .get("paths")
+        .and_then(|v| v.as_array())
+        .map(|a| a.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect::<Vec<_>>())
+        .unwrap_or_default();
+    match backup::restore(scope, remote_path, &paths) {
+        Ok(payload) => RpcResponse::ok(msg::BACKUP_RESTORE_RESULT, rid, payload),
+        Err(e) => RpcResponse::error(rid, e),
     }
 }
