@@ -127,4 +127,4 @@ nftables-first. All managed rules live in their own table (`ports_agent` by defa
 
 ---
 
-<p align="center"><sub><a href="LICENSE">MIT</a> © Ports</sub></p>
+<p align="center"><sub><a href="LICENSE">MIT License</a> © TheiVy</sub></p>
