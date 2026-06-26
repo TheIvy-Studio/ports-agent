@@ -1,114 +1,130 @@
-# ports-agent
+<h1 align="center">ports-agent</h1>
 
-Native, small, "dumb-by-design" node agent for the **Ports** project, plus the
-`portsctl` CLI. Written in Rust. The agent only executes structured RPC commands
-from `ports-backend` and reports telemetry — it holds no users, no UI and no
-panel business logic.
+<h4 align="center">Native, small, dumb-by-design node agent for the Ports project, plus the portsctl CLI. It executes structured RPC commands from the backend and reports telemetry — no users, no UI, no panel logic.</h4>
 
-## Workspace layout
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge&logo=opensourceinitiative&logoColor=FFFFFF" alt="License"></a>
+  <img src="https://img.shields.io/badge/Rust-2021-000000?style=for-the-badge&logo=rust&logoColor=white" alt="Rust">
+  <img src="https://img.shields.io/badge/Packaging-deb%20%7C%20rpm%20%7C%20apk%20%7C%20pacman-orange?style=for-the-badge&logo=linux&logoColor=FCC624" alt="Packaging">
+  <img src="https://img.shields.io/badge/Platform-Linux-lightgrey?style=for-the-badge&logo=linux&logoColor=FCC624" alt="Platform">
+</p>
 
-```
-crates/
-  ports-common/        shared DTOs — RPC protocol envelope + agent config + paths
-  ports-agent/         the agent (library + daemon), src/ split into:
-    src/core/          system facts, telemetry, ed25519 keys, logging, version
-    src/db/            local state store (applied rules) under /var/lib/ports
-    src/firewall/      provider trait + nftables backend (plan / apply / backup)
-    src/router/        dispatch: maps one RPC message to a handler
-    src/transport/     reverse (outbound WebSocket) + stdio (SSH agent-rpc)
-  portsctl/            CLI, src/ split into core/ (backend client, systemd) + commands/
-packaging/             systemd unit, nfpm (deb/rpm/apk), pacman PKGBUILD, rpm spec, installer
-```
+---
 
-`router::dispatch` is the single, transport-agnostic command handler. The daemon
-feeds it messages from the reverse WebSocket; `portsctl agent-rpc` feeds it the
-same messages over stdin/stdout (SSH mode). Identical protocol, identical logic.
+**ports-agent** is the per-node executor for [Ports](https://github.com/IMDelewer/ports). The backend speaks one RPC envelope to it over two interchangeable transports; the agent applies firewall, DHCP, proxy, certificate and DNS changes locally and never makes policy decisions of its own.
 
-## Connection modes
+---
 
-- **Reverse (mode B):** `ports-agent.service` dials out to
-  `backend.websocket_url`, sends a signed `hello`, then serves RPC and pushes a
-  telemetry snapshot every 15s. No inbound ports on the node.
-- **Direct SSH (mode A):** no daemon runs. The backend SSHes in and runs the
-  restricted `portsctl agent-rpc`, exchanging one JSON request/response per call.
+## 🔌 Connection modes
 
-## Files & directories
+- **Reverse (mode B):** `ports-agent.service` dials out to the backend WebSocket, sends a signed `hello`, serves RPC and pushes telemetry every 15s. No inbound ports on the node.
+- **Direct SSH (mode A):** no daemon; the backend SSHes in and runs the restricted `portsctl agent-rpc`, one JSON request/response per call.
+- **Tailscale SSH:** same as SSH, reached over the node's Tailscale IP.
 
-| Path | Purpose |
-|------|---------|
-| `/etc/ports/config/agent.yaml` | agent configuration (see `packaging/config/agent.example.yaml`) |
-| `/etc/ports/keys/node.key` / `node.pub` | node Ed25519 identity (key is `0600`) |
-| `/var/lib/ports/state.json` | applied port-forward rules + last backup |
-| `/var/lib/ports/backups/` | nftables ruleset backups taken before apply |
-| `/var/log/ports/` | log directory (managed by systemd `LogsDirectory`) |
+`router::dispatch` is the single, transport-agnostic command handler — identical protocol, identical logic on every transport.
 
-The systemd unit declares `ConfigurationDirectory`/`StateDirectory`/`LogsDirectory`
-so `/etc/ports`, `/var/lib/ports` and `/var/log/ports` are created and owned
-automatically; package post-install creates `config/` + `keys/` and the `ports`
-system user.
+---
 
-## portsctl
+## 🧩 Handlers
+
+| Domain | Commands |
+| :--- | :--- |
+| **Firewall** | `firewall.plan` / `apply` / `delete` / `backup` / `restore` (nftables) |
+| **Discovery** | `discovery.scan` (system, network, ports, docker, tailscale, firewall) |
+| **DHCP** | `dhcp.plan` / `dhcp.apply` (dnsmasq and Kea) |
+| **Proxy** | `haproxy.validate` / `haproxy.reload` |
+| **Certificates** | `cert.issue` / `cert.renew` (lego) |
+| **DNS** | `dns.plan` / `dns.apply` (CoreDNS) |
+| **Mesh** | `tailscale.status` |
+| **Backup** | `backup.create` / `backup.restore` |
+| **Traffic** | `conntrack.list`, telemetry snapshots |
+
+---
+
+## 🖥️ portsctl
 
 ```
-portsctl login [<backend-url> <enrollment-token>] [--mode ssh|reverse]
-portsctl logout
-portsctl status
-portsctl config
+portsctl login [<backend-url> <enrollment-token>] [--mode ssh|reverse|tailscale] [--tailscale-ip <ip>]
+portsctl logout | status | config | check
 portsctl node info | node rename <name>
 portsctl agent start | stop | restart
-portsctl check
 portsctl detect-interfaces
 portsctl firewall plan | apply | backup | restore <path>
 portsctl logs [--lines N]
 portsctl agent-rpc          # internal: restricted SSH command, JSON over stdin/stdout
 ```
 
-`login` generates the node keypair, enrolls against
-`POST /api/agent/enroll`, writes `/etc/ports/config/agent.yaml`, and (reverse
-mode) enables + starts the service.
+`login` generates the node Ed25519 keypair, enrolls against `POST /api/agent/enroll`, writes `/etc/ports/config/agent.yaml`, and (reverse mode) enables and starts the service.
 
-## Build
+---
+
+## 📦 Build & package
 
 ```bash
-cargo build --release          # target/release/ports-agent, target/release/portsctl
+cargo build --release
 cargo check --workspace
+
+make deb        # dist/ports-agent_<arch>.deb
+make rpm        # dist/ports-agent_<arch>.rpm
+make apk        # dist/ports-agent_<arch>.apk
+make arch       # packaging/pacman -> *.pkg.tar.zst
+make packages   # deb + rpm + apk
 ```
 
-## Packaging (deb / rpm / pacman / apk)
-
-`nfpm` builds Debian, RPM and Alpine packages from one spec; Arch uses a PKGBUILD:
-
-```bash
-make deb      # dist/ports-agent_<arch>.deb       (apt / dpkg)
-make rpm      # dist/ports-agent_<arch>.rpm        (dnf / yum / rpm)
-make apk      # dist/ports-agent_<arch>.apk        (apk)
-make arch     # packaging/pacman -> *.pkg.tar.zst  (pacman -U)
-make packages # deb + rpm + apk
-```
-
-Universal one-liner (downloads a prebuilt package for the distro, or builds from
-source, then enrolls):
+Universal installer:
 
 ```bash
 curl -fsSL https://ports.example.com/install-agent.sh | sudo bash -s -- \
   --backend https://ports.example.com --mode reverse --token ps_enroll_xxx
 ```
 
-Or per-distro after the package is installed:
+---
 
-```bash
-sudo apt install ./ports-agent_amd64.deb     # Debian/Ubuntu
-sudo dnf install ./ports-agent_amd64.rpm      # Fedora/RHEL
-sudo pacman -U ports-agent-*.pkg.tar.zst      # Arch
-sudo apk add --allow-untrusted ports-agent_amd64.apk
-sudo portsctl login https://ports.example.com ps_enroll_xxx
+## ⚙️ Files & directories
+
+| Path | Purpose |
+| :--- | :--- |
+| `/etc/ports/config/agent.yaml` | agent configuration |
+| `/etc/ports/keys/node.key` · `node.pub` | node Ed25519 identity (`0600`) |
+| `/var/lib/ports/state.json` | applied rules + last backup |
+| `/var/lib/ports/backups/` | config/ruleset backups taken before apply |
+| `/var/log/ports/` | logs (systemd `LogsDirectory`) |
+
+---
+
+## 🗂 Structure
+
+```
+ports-agent/
+├── crates/
+│   ├── ports-common/       ← shared RPC protocol envelope, config, paths
+│   ├── ports-agent/        ← daemon + library
+│   │   └── src/
+│   │       ├── core/       ← system facts, telemetry, keys, logging
+│   │       ├── db/         ← local state store
+│   │       ├── firewall/   ← nftables provider (plan/apply/backup)
+│   │       ├── dhcp/       ← dnsmasq / Kea
+│   │       ├── haproxy/    ← config validate / reload
+│   │       ├── acme/       ← lego issue / renew
+│   │       ├── coredns/    ← managed zones
+│   │       ├── tailscale/  ← mesh status
+│   │       ├── backup/     ← config backup / restore
+│   │       ├── discovery/  ← read-only system scan
+│   │       ├── traffic/    ← conntrack listing
+│   │       ├── transport/  ← reverse WebSocket + stdio (SSH)
+│   │       └── router/     ← single dispatch handler
+│   └── portsctl/           ← CLI (core/ + commands/)
+├── packaging/              ← systemd unit, nfpm, pacman, rpm, installer
+├── Makefile
+└── README.md
 ```
 
-## Firewall model
+---
 
-nftables-first (iptables detection is reported as a fallback backend). All
-managed rules live in their own table (`ports_agent` by default) across a
-`prerouting` (DNAT) and `postrouting` (masquerade) chain, each rule tagged with
-its `ruleId` comment. Existing system rules are never flushed. Apply always
-takes a ruleset backup first when `backup_before_apply` is set, and the backend
-requires a dry-run `plan` before any `apply`.
+## 🛡️ Firewall model
+
+nftables-first. All managed rules live in their own table (`ports_agent` by default) across `prerouting` (DNAT) and `postrouting` (masquerade) chains, each rule tagged with its `ruleId`. System rules are never flushed. Apply takes a ruleset backup first, and the backend requires a dry-run `plan` before any `apply`.
+
+---
+
+<p align="center"><sub><a href="LICENSE">MIT</a> © Ports</sub></p>
