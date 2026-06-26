@@ -2,9 +2,6 @@
 target/
 **/*.rs.bk
 
-# Cargo
-Cargo.lock
-
 # Environment
 .env
 .env.local
