@@ -29,7 +29,23 @@ async fn connect_once(config: &AgentConfig, url: &str) -> Result<()> {
     let (ws, _) = connect_async(url).await?;
     let (mut write, mut read) = ws.split();
 
-    let signature = keys::sign_b64(&config.auth.key_path, config.node.id.as_bytes())?;
+    let nonce = loop {
+        match read.next().await {
+            Some(Ok(Message::Text(text))) => {
+                let frame: serde_json::Value = serde_json::from_str(&text)?;
+                match frame.get("payload").and_then(|p| p.get("nonce")).and_then(|n| n.as_str()) {
+                    Some(value) => break value.to_string(),
+                    None => return Err(anyhow!("expected challenge frame, got: {text}")),
+                }
+            }
+            Some(Ok(Message::Ping(payload))) => write.send(Message::Pong(payload)).await?,
+            Some(Ok(_)) => continue,
+            Some(Err(e)) => return Err(e.into()),
+            None => return Err(anyhow!("connection closed before challenge")),
+        }
+    };
+
+    let signature = keys::sign_b64(&config.auth.key_path, nonce.as_bytes())?;
     let hello = json!({
         "type": msg::HELLO,
         "payload": {
