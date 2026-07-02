@@ -4,7 +4,7 @@ set -e
 BACKEND=""
 TOKEN=""
 MODE="reverse"
-RELEASE_BASE="${PORTS_RELEASE_BASE:-https://github.com/IMDelewer/ports/releases/latest/download}"
+RELEASE_BASE="${PORTS_RELEASE_BASE:-https://github.com/TheiVy-Studio/ports-agent/releases/latest/download}"
 
 while [ $# -gt 0 ]; do
     case "$1" in

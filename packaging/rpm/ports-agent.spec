@@ -4,7 +4,7 @@ Release:        1%{?dist}
 Summary:        Ports agent — native systemd node agent and portsctl CLI
 
 License:        MIT
-URL:            https://github.com/IMDelewer/ports
+URL:            https://github.com/TheiVy-Studio/ports-agent
 BuildRequires:  cargo
 Requires:       nftables
 

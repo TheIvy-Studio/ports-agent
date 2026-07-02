@@ -11,7 +11,7 @@
 
 ---
 
-**ports-agent** is the per-node executor for [Ports](https://github.com/IMDelewer/ports). The backend speaks one RPC envelope to it over two interchangeable transports; the agent applies firewall, DHCP, proxy, certificate and DNS changes locally and never makes policy decisions of its own.
+**ports-agent** is the per-node executor for [Ports](https://github.com/TheiVy-Studio/ports). The backend speaks one RPC envelope to it over two interchangeable transports; the agent applies firewall, DHCP, proxy, certificate and DNS changes locally and never makes policy decisions of its own.
 
 ---
 

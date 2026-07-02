@@ -5,13 +5,13 @@ version: ${VERSION}
 version_schema: none
 section: net
 priority: optional
-maintainer: IMDelewer <noreply@ports.local>
+maintainer: IMDelewer <del@imalive.lol>
 description: |
   Ports agent — native systemd node agent for the Ports control plane.
   Manages nftables port-forward rules and reports telemetry. Ships the
   portsctl CLI for enrollment and local management.
 vendor: Ports
-homepage: https://github.com/IMDelewer/ports
+homepage: https://github.com/TheiVy-Studio/ports-agent
 license: MIT
 
 depends:
