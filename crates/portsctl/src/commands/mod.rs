@@ -248,7 +248,7 @@ fn status() -> Result<()> {
 }
 
 fn show_config() -> Result<()> {
-    let text = std::fs::read_to_string(&paths::config_file())
+    let text = std::fs::read_to_string(paths::config_file())
         .map_err(|e| anyhow!("cannot read {}: {e}", paths::config_file()))?;
     print!("{text}");
     Ok(())
