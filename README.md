@@ -75,7 +75,7 @@ Universal installer:
 
 ```bash
 curl -fsSL https://ports.theivy.ru/install.sh | sudo bash -s -- \
-  --backend https://ports.example.com --mode reverse --token ps_enroll_xxx
+  --backend https://example.com --mode reverse --token ps_enroll_xxx
 ```
 
 ---

@@ -4,8 +4,8 @@ node:
   mode: "reverse"
 
 backend:
-  url: "https://ports.example.com"
-  websocket_url: "wss://ports.example.com/api/agent/connect"
+  url: "https://example.com"
+  websocket_url: "wss://example.com/api/agent/connect"
 
 auth:
   key_path: "/etc/ports/keys/node.key"
